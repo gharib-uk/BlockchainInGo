@@ -1,12 +1,14 @@
 package main
 
 import (
-	"crypto/sha512"
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
 )
+
+const MINING_DIFFICULTY = 3
 
 type Transaction struct {
 	senderBlockchainAddress    string
@@ -16,9 +18,9 @@ type Transaction struct {
 
 type Block struct {
 	nonce        int
-	previousHash [64]byte
+	previousHash [32]byte
 	timestamp    int64
-	transactions []string
+	transactions []*Transaction
 }
 
 type Blockchain struct {
@@ -33,12 +35,13 @@ func NewBlockchain() *Blockchain {
 	return bc
 }
 
-func NewBlock(nonce int, previousHash [64]byte) *Block {
-	return &Block{
-		nonce:        nonce,
-		previousHash: previousHash,
-		timestamp:    time.Now().UnixNano(),
-	}
+func NewBlock(nonce int, previousHash [32]byte, transactions []*Transaction) *Block {
+	b := new(Block)
+	b.timestamp = time.Now().UnixNano()
+	b.nonce = nonce
+	b.previousHash = previousHash
+	b.transactions = transactions
+	return b
 }
 
 func NewTransaction(sender string, recipient string, value float32) *Transaction {
@@ -47,21 +50,27 @@ func NewTransaction(sender string, recipient string, value float32) *Transaction
 
 func (block *Block) ToString() string {
 	// with block.previousHash[:] create a byte slice
-	return fmt.Sprintf("Block:\ntimestamp       %d\nnonce           %d\nprevious_hash   %x\ntransactions    %s\n",
-		block.timestamp, block.nonce, block.previousHash, block.transactions)
+	s := fmt.Sprintf("Block:\ntimestamp       %d\nnonce           %d\nprevious_hash   %x\nTransactions:\n",
+		block.timestamp, block.nonce, block.previousHash)
+
+	for _, tx := range block.transactions {
+		s += fmt.Sprintf("%s\n", tx.ToString())
+	}
+
+	return s
 }
 
-func (block *Block) Hash() [64]byte {
+func (block *Block) Hash() [32]byte {
 	m, _ := json.Marshal(block)
-	return sha512.Sum512([]byte(m))
+	return sha256.Sum256([]byte(m))
 }
 
 func (block *Block) MarshalJSON() ([]byte, error) {
 	return json.Marshal(struct {
-		Timestamp    int64    `json:"timestamp"`
-		Nonce        int      `json:"nonce"`
-		PreviousHash [64]byte `json:"previous_hash"`
-		Transactions []string `json:"transactions"`
+		Timestamp    int64          `json:"timestamp"`
+		Nonce        int            `json:"nonce"`
+		PreviousHash [32]byte       `json:"previous_hash"`
+		Transactions []*Transaction `json:"transactions"`
 	}{
 		Timestamp:    block.timestamp,
 		Nonce:        block.nonce,
@@ -70,9 +79,45 @@ func (block *Block) MarshalJSON() ([]byte, error) {
 	})
 }
 
-func (bc *Blockchain) CreateBlock(nonce int, previousHash [64]byte) *Block {
-	b := NewBlock(nonce, previousHash)
+func (bc *Blockchain) ValidProof(nonce int, previousHash [32]byte,
+	transactions []*Transaction, difficulty int) bool {
+	zeros := strings.Repeat("0", difficulty)
+	guessBlock := Block{
+		nonce:        nonce,
+		previousHash: previousHash,
+		timestamp:    0,
+		transactions: transactions,
+	}
+	guessHashStr := fmt.Sprintf("%x", guessBlock.Hash())
+	return guessHashStr[:difficulty] == zeros
+}
+
+func (bc *Blockchain) ProofOfWork() int {
+	transactions := bc.CopyTransactionPool()
+	previousHash := bc.LastBlock().Hash()
+	nonce := 0
+	for !bc.ValidProof(nonce, previousHash, transactions, MINING_DIFFICULTY) {
+		nonce += 1
+	}
+	return nonce
+}
+
+// CopyTransactionPool a hard copy function for transactionPool in Blockchain
+func (bc *Blockchain) CopyTransactionPool() []*Transaction {
+	transactions := make([]*Transaction, 0)
+	for _, t := range bc.transactionPool {
+		transactions = append(transactions,
+			NewTransaction(t.senderBlockchainAddress,
+				t.recipientBlockchainAddress,
+				t.value))
+	}
+	return transactions
+}
+
+func (bc *Blockchain) CreateBlock(nonce int, previousHash [32]byte) *Block {
+	b := NewBlock(nonce, previousHash, bc.transactionPool)
 	bc.chain = append(bc.chain, b)
+	bc.transactionPool = []*Transaction{}
 	return b
 }
 

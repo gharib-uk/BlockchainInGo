@@ -10,11 +10,16 @@ func main() {
 	blockChain := NewBlockchain()
 	println(blockChain.ToString())
 
+	blockChain.AddTransaction("A", "B", 1.0)
 	previousHash := blockChain.LastBlock().Hash()
-	blockChain.CreateBlock(5, previousHash)
+	nonce := blockChain.ProofOfWork()
+	blockChain.CreateBlock(nonce, previousHash)
 	println(blockChain.ToString())
 
+	blockChain.AddTransaction("C", "D", 2.0)
+	blockChain.AddTransaction("X", "Y", 3.0)
 	previousHash = blockChain.LastBlock().Hash()
-	blockChain.CreateBlock(2, previousHash)
+	nonce = blockChain.ProofOfWork()
+	blockChain.CreateBlock(nonce, previousHash)
 	println(blockChain.ToString())
 }
