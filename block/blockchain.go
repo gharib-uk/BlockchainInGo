@@ -173,7 +173,6 @@ func (bc *Blockchain) CalculateTotalAmount(blockchainAddress string) float32 {
 }
 
 func (t *Transaction) ToString() string {
-
 	return fmt.Sprintf(
 		"%s\n sender_blockchain_address      %s\n recipient_blockchain_address   %s\n"+
 			" value                          %.1f\n",

@@ -10,7 +10,8 @@ func init() {
 }
 
 func main() {
-	blockChain := block.NewBlockchain()
+	myBlockchainAddress := "my_blockchain_address"
+	blockChain := block.NewBlockchain(myBlockchainAddress)
 	println(blockChain.ToString())
 
 	blockChain.AddTransaction("A", "B", 1.0)
