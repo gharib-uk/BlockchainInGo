@@ -1,13 +1,16 @@
 package main
 
-import "log"
+import (
+	"BlockchainInGo/block"
+	"log"
+)
 
 func init() {
 	log.SetPrefix("Blockchain: ")
 }
 
 func main() {
-	blockChain := NewBlockchain()
+	blockChain := block.NewBlockchain()
 	println(blockChain.ToString())
 
 	blockChain.AddTransaction("A", "B", 1.0)

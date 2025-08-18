@@ -1,14 +1,19 @@
-package main
+package block
 
 import (
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
+	"log"
 	"strings"
 	"time"
 )
 
-const MINING_DIFFICULTY = 3
+const (
+	MINING_DIFFICULTY = 3
+	MINING_SENDER     = "THE BLOCKCHAIN"
+	MINING_REWARD     = 1.0
+)
 
 type Transaction struct {
 	senderBlockchainAddress    string
@@ -24,13 +29,15 @@ type Block struct {
 }
 
 type Blockchain struct {
-	chain           []*Block
-	transactionPool []*Transaction
+	chain             []*Block
+	transactionPool   []*Transaction
+	blockchainAddress string
 }
 
-func NewBlockchain() *Blockchain {
-	b := new(Block)
+func NewBlockchain(blockchainAddress string) *Blockchain {
+	b := &Block{}
 	bc := new(Blockchain)
+	bc.blockchainAddress = blockchainAddress
 	bc.CreateBlock(0, b.Hash())
 	return bc
 }
@@ -102,7 +109,7 @@ func (bc *Blockchain) ProofOfWork() int {
 	return nonce
 }
 
-// CopyTransactionPool a hard copy function for transactionPool in Blockchain
+// CopyTransactionPool a deep copy function for transactionPool in Blockchain
 func (bc *Blockchain) CopyTransactionPool() []*Transaction {
 	transactions := make([]*Transaction, 0)
 	for _, t := range bc.transactionPool {
@@ -137,6 +144,32 @@ func (bc *Blockchain) LastBlock() *Block {
 func (bc *Blockchain) AddTransaction(sender string, recipient string, value float32) {
 	t := NewTransaction(sender, recipient, value)
 	bc.transactionPool = append(bc.transactionPool, t)
+}
+
+func (bc *Blockchain) Mining() bool {
+	bc.AddTransaction(MINING_SENDER, bc.blockchainAddress, MINING_REWARD)
+	nonce := bc.ProofOfWork()
+	previousHash := bc.LastBlock().Hash()
+	bc.CreateBlock(nonce, previousHash)
+	log.Println("action=mining, status=success")
+	return true
+}
+
+func (bc *Blockchain) CalculateTotalAmount(blockchainAddress string) float32 {
+	var totalAmount float32 = 0.0
+	for _, b := range bc.chain {
+		for _, t := range b.transactions {
+			value := t.value
+			if blockchainAddress == t.recipientBlockchainAddress {
+				totalAmount += value
+			}
+
+			if blockchainAddress == t.senderBlockchainAddress {
+				totalAmount -= value
+			}
+		}
+	}
+	return totalAmount
 }
 
 func (t *Transaction) ToString() string {
