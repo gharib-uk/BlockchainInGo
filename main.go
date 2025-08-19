@@ -2,6 +2,8 @@ package main
 
 import (
 	"BlockchainInGo/block"
+	"BlockchainInGo/wallet"
+	"fmt"
 	"log"
 )
 
@@ -26,4 +28,8 @@ func main() {
 	nonce = blockChain.ProofOfWork()
 	blockChain.CreateBlock(nonce, previousHash)
 	println(blockChain.ToString())
+
+	w := wallet.NewWallet()
+	fmt.Println(w.PrivateKeyStr())
+	fmt.Println(w.PublicKeyStr())
 }
