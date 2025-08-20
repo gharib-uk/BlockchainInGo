@@ -19,6 +19,14 @@ type Wallet struct {
 	blockchainAddress string
 }
 
+type Transaction struct {
+	senderPrivateKey           *ecdsa.PrivateKey
+	senderPublicKey            *ecdsa.PublicKey
+	senderBlockchainAddress    string
+	recipientBlockchainAddress string
+	value                      float32
+}
+
 func NewWallet() *Wallet {
 	// 1. Creating ECDSA private key (32 bytes) public key (64 bytes)
 	w := new(Wallet)
@@ -76,14 +84,6 @@ func (w *Wallet) PublicKeyStr() string {
 
 func (w *Wallet) BlockchainAddress() string {
 	return w.blockchainAddress
-}
-
-type Transaction struct {
-	senderPrivateKey           *ecdsa.PrivateKey
-	senderPublicKey            *ecdsa.PublicKey
-	senderBlockchainAddress    string
-	recipientBlockchainAddress string
-	value                      float32
 }
 
 func NewTransaction(privateKey *ecdsa.PrivateKey, publicKey *ecdsa.PublicKey,
