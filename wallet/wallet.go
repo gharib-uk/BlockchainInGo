@@ -1,15 +1,14 @@
 package wallet
 
 import (
-	"BlockchainInGo/utils"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
-
 	"github.com/btcsuite/btcutil/base58"
+	"BlockchainInGo/utils"
 	"golang.org/x/crypto/ripemd160"
 )
 
@@ -17,14 +16,6 @@ type Wallet struct {
 	privateKey        *ecdsa.PrivateKey
 	publicKey         *ecdsa.PublicKey
 	blockchainAddress string
-}
-
-type Transaction struct {
-	senderPrivateKey           *ecdsa.PrivateKey
-	senderPublicKey            *ecdsa.PublicKey
-	senderBlockchainAddress    string
-	recipientBlockchainAddress string
-	value                      float32
 }
 
 func NewWallet() *Wallet {
@@ -55,11 +46,11 @@ func NewWallet() *Wallet {
 	h6.Write(digest5)
 	digest6 := h6.Sum(nil)
 	// 7. Take the first 4 bytes of the second SHA-256 hash for checksum.
-	chkSum := digest6[:4]
+	chsum := digest6[:4]
 	// 8. Add the 4 checksum bytes from 7 at the end of extended RIPEMD-160 hash from 4 (25 bytes).
 	dc8 := make([]byte, 25)
 	copy(dc8[:21], vd4[:])
-	copy(dc8[21:], chkSum[:])
+	copy(dc8[21:], chsum[:])
 	// 9. Convert the result from a byte string into base58.
 	address := base58.Encode(dc8)
 	w.blockchainAddress = address
@@ -86,6 +77,26 @@ func (w *Wallet) BlockchainAddress() string {
 	return w.blockchainAddress
 }
 
+func (w *Wallet) MarshalJSON() ([]byte, error) {
+	return json.Marshal(struct {
+		PrivateKey        string `json:"private_key"`
+		PublicKey         string `json:"public_key"`
+		BlockchainAddress string `json:"blockchain_address"`
+	}{
+		PrivateKey:        w.PrivateKeyStr(),
+		PublicKey:         w.PublicKeyStr(),
+		BlockchainAddress: w.BlockchainAddress(),
+	})
+}
+
+type Transaction struct {
+	senderPrivateKey           *ecdsa.PrivateKey
+	senderPublicKey            *ecdsa.PublicKey
+	senderBlockchainAddress    string
+	recipientBlockchainAddress string
+	value                      float32
+}
+
 func NewTransaction(privateKey *ecdsa.PrivateKey, publicKey *ecdsa.PublicKey,
 	sender string, recipient string, value float32) *Transaction {
 	return &Transaction{privateKey, publicKey, sender, recipient, value}
@@ -93,9 +104,9 @@ func NewTransaction(privateKey *ecdsa.PrivateKey, publicKey *ecdsa.PublicKey,
 
 func (t *Transaction) GenerateSignature() *utils.Signature {
 	m, _ := json.Marshal(t)
-	h := sha256.Sum256(m)
+	h := sha256.Sum256([]byte(m))
 	r, s, _ := ecdsa.Sign(rand.Reader, t.senderPrivateKey, h[:])
-	return &utils.Signature{R: r, S: s}
+	return &utils.Signature{r, s}
 }
 
 func (t *Transaction) MarshalJSON() ([]byte, error) {

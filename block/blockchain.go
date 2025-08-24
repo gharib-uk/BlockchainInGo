@@ -71,23 +71,22 @@ func (block *Block) ToString() string {
 
 func (block *Block) Hash() [32]byte {
 	m, _ := json.Marshal(block)
-	return sha256.Sum256([]byte(m))
+	return sha256.Sum256(m)
 }
 
 func (block *Block) MarshalJSON() ([]byte, error) {
 	return json.Marshal(struct {
 		Timestamp    int64          `json:"timestamp"`
 		Nonce        int            `json:"nonce"`
-		PreviousHash [32]byte       `json:"previous_hash"`
+		PreviousHash string         `json:"previous_hash"`
 		Transactions []*Transaction `json:"transactions"`
 	}{
 		Timestamp:    block.timestamp,
 		Nonce:        block.nonce,
-		PreviousHash: block.previousHash,
+		PreviousHash: fmt.Sprintf("%x", block.previousHash),
 		Transactions: block.transactions,
 	})
 }
-
 func (bc *Blockchain) ValidProof(nonce int, previousHash [32]byte,
 	transactions []*Transaction, difficulty int) bool {
 	zeros := strings.Repeat("0", difficulty)
@@ -171,7 +170,7 @@ func (bc *Blockchain) AddTransaction(sender string, recipient string, value floa
 func (bc *Blockchain) VerifyTransactionSignature(
 	senderPublicKey *ecdsa.PublicKey, s *utils.Signature, t *Transaction) bool {
 	m, _ := json.Marshal(t)
-	h := sha256.Sum256([]byte(m))
+	h := sha256.Sum256(m)
 	return ecdsa.Verify(senderPublicKey, h[:], s.R, s.S)
 }
 
@@ -199,6 +198,14 @@ func (bc *Blockchain) CalculateTotalAmount(blockchainAddress string) float32 {
 		}
 	}
 	return totalAmount
+}
+
+func (bc *Blockchain) MarshalJSON() ([]byte, error) {
+	return json.Marshal(struct {
+		Blocks []*Block `json:"chains"`
+	}{
+		Blocks: bc.chain,
+	})
 }
 
 func (t *Transaction) ToString() string {
