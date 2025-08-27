@@ -31,16 +31,26 @@ type Block struct {
 }
 
 type Blockchain struct {
-	chain             []*Block
 	transactionPool   []*Transaction
+	chain             []*Block
 	blockchainAddress string
+	port              uint16
 }
 
-func NewBlockchain(blockchainAddress string) *Blockchain {
+type TransactionRequest struct {
+	SenderBlockchainAddress    *string  `json:"sender_blockchain_address"`
+	RecipientBlockchainAddress *string  `json:"recipient_blockchain_address"`
+	SenderPublicKey            *string  `json:"sender_public_key"`
+	Value                      *float32 `json:"value"`
+	Signature                  *string  `json:"signature"`
+}
+
+func NewBlockchain(blockchainAddress string, port uint16) *Blockchain {
 	b := &Block{}
 	bc := new(Blockchain)
 	bc.blockchainAddress = blockchainAddress
 	bc.CreateBlock(0, b.Hash())
+	bc.port = port
 	return bc
 }
 
@@ -87,6 +97,7 @@ func (block *Block) MarshalJSON() ([]byte, error) {
 		Transactions: block.transactions,
 	})
 }
+
 func (bc *Blockchain) ValidProof(nonce int, previousHash [32]byte,
 	transactions []*Transaction, difficulty int) bool {
 	zeros := strings.Repeat("0", difficulty)
@@ -225,4 +236,15 @@ func (t *Transaction) MarshalJSON() ([]byte, error) {
 		Recipient: t.recipientBlockchainAddress,
 		Value:     t.value,
 	})
+}
+
+func (tr *TransactionRequest) Validate() bool {
+	if tr.SenderBlockchainAddress == nil ||
+		tr.RecipientBlockchainAddress == nil ||
+		tr.SenderPublicKey == nil ||
+		tr.Value == nil ||
+		tr.Signature == nil {
+		return false
+	}
+	return true
 }
