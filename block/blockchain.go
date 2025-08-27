@@ -15,6 +15,7 @@ const (
 	MINING_DIFFICULTY = 3
 	MINING_SENDER     = "THE BLOCKCHAIN"
 	MINING_REWARD     = 1.0
+	MINING_TIMER_SEC  = 20
 )
 
 type Transaction struct {
@@ -43,6 +44,10 @@ type TransactionRequest struct {
 	SenderPublicKey            *string  `json:"sender_public_key"`
 	Value                      *float32 `json:"value"`
 	Signature                  *string  `json:"signature"`
+}
+
+type AmountResponse struct {
+	Amount float32 `json:"amount"`
 }
 
 func NewBlockchain(blockchainAddress string, port uint16) *Blockchain {
@@ -131,6 +136,25 @@ func (bc *Blockchain) CopyTransactionPool() []*Transaction {
 				t.value))
 	}
 	return transactions
+}
+
+func (bc *Blockchain) CreateTransaction(sender string, recipient string, value float32,
+	senderPublicKey *ecdsa.PublicKey, s *utils.Signature) bool {
+	isTransacted := bc.AddTransaction(sender, recipient, value, senderPublicKey, s)
+
+	// TODO
+	// Sync
+
+	return isTransacted
+}
+
+func (bc *Blockchain) TransactionPool() []*Transaction {
+	return bc.transactionPool
+}
+
+func (bc *Blockchain) StartMining() {
+	bc.Mining()
+	_ = time.AfterFunc(time.Second*MINING_TIMER_SEC, bc.StartMining)
 }
 
 func (bc *Blockchain) CreateBlock(nonce int, previousHash [32]byte) *Block {
@@ -247,4 +271,12 @@ func (tr *TransactionRequest) Validate() bool {
 		return false
 	}
 	return true
+}
+
+func (ar *AmountResponse) MarshalJSON() ([]byte, error) {
+	return json.Marshal(struct {
+		Amount float32 `json:"amount"`
+	}{
+		Amount: ar.Amount,
+	})
 }

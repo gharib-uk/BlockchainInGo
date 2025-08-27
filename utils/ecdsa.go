@@ -37,12 +37,12 @@ func SignatureFromString(s string) *Signature {
 
 func PublicKeyFromString(s string) *ecdsa.PublicKey {
 	x, y := String2BigIntTuple(s)
-	return &ecdsa.PublicKey{Curve: elliptic.P256(), X: &x, Y: &y}
+	return &ecdsa.PublicKey{elliptic.P256(), &x, &y}
 }
 
 func PrivateKeyFromString(s string, publicKey *ecdsa.PublicKey) *ecdsa.PrivateKey {
 	b, _ := hex.DecodeString(s[:])
 	var bi big.Int
 	_ = bi.SetBytes(b)
-	return &ecdsa.PrivateKey{PublicKey: *publicKey, D: &bi}
+	return &ecdsa.PrivateKey{*publicKey, &bi}
 }
